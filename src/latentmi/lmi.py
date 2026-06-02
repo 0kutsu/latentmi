@@ -102,11 +102,6 @@ def train(model, X_train, Y_train, X_test, Y_test,
             model.load_state_dict(es)
             return
         
-        print('\repoch %d (of max %d) %s' 
-                         %(epoch, epochs, '\U0001F33B'*int(10*(epoch/epochs))),
-                         end='')
-        sys.stdout.flush()
-
 
 def learn_representation(Xs, Ys, train_indices, test_indices,
        regularizer='models.AECross', 
@@ -248,3 +243,44 @@ def estimate(Xs, Ys, regularizer='models.AECross',
         estimate += ksg.mi(Zx.cpu(), Zy.cpu(), k)
     
     return estimate, (Zx.cpu(), Zy.cpu()), model
+
+def variance(Xs, Ys, n_partitions=9, regularizer='models.AECross', alpha=1, lam=1, N_dims=8, validation_split=0.5, estimate_on_val=True, batch_size=512, lr=0.0001, epochs=300, patience=30, quiet=True, device=None):
+    
+    assert len(Xs) == len(Ys), "Xs and Ys must be the same size!"
+   
+    XsYs = list(zip(Xs, Ys)) # combine Xs and Ys into a list of tuples for easier shuffling and partitioning
+    # [([x, x, x], [y, y, y]), ([x, x, x], [y, y, y]), ...]
+    data_size = len(XsYs)
+    part_sizes = np.array([i for i in range(2, n_partitions + 2)]) # the number of sections in each partition (the first partition has 2 sections, etc.)
+
+    partitions = [] # contains n_partitions different partitions of n_i sections where i goes from 2 to n_partitions + 1
+    for i in range(0, n_partitions):
+        sec_size = data_size // part_sizes[i] # number of samples in each section
+        np.random.shuffle(XsYs) # shuffle the data before creating the sections
+        partitions.append([XsYs[j*sec_size:(j+1)*sec_size] for j in range(part_sizes[i])])
+
+    lmis = [] # contains the LMI estimates for each partition
+    for part in partitions:
+        part_lmi_est = []
+        for sec in part:
+            Xs_sec, Ys_sec = zip(*sec) # unzip the section into Xs and Ys
+            Xs_sec = np.array(Xs_sec)
+            Ys_sec = np.array(Ys_sec)
+
+            pmis_part , _, _ = estimate(Xs_sec, Ys_sec, regularizer='models.AECross', alpha=1, lam=1, N_dims=8, k=3, validation_split=0.5, estimate_on_val=True, batch_size=512, lr=0.0001, epochs=300, patience=30, quiet=True, device=None);
+
+            lmi_estimate_part = np.nanmean(pmis_part)
+            part_lmi_est.append(lmi_estimate_part)
+        lmis.append(part_lmi_est)
+
+    # calculating the variance of the LMI estiamtes from the subsamples
+    part_variances = np.array([None] * n_partitions) # contains the variance estimates for each partition (the first partition is 0)
+    for i in range(0, n_partitions):
+        part_variances[i] = np.var(lmis[i], ddof = 1)
+
+    variance_predicted = sum((part_sizes - 1) / part_sizes * part_variances) / sum(part_sizes - 1)
+    sml = variance_predicted * data_size
+    var_s = 2 * sml**2 / sum(part_sizes - 1)
+    stdvar = np.sqrt(var_s / data_size**2)
+    
+    return variance_predicted, stdvar
