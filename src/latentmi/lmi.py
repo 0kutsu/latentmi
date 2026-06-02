@@ -244,7 +244,7 @@ def estimate(Xs, Ys, regularizer='models.AECross',
     
     return estimate, (Zx.cpu(), Zy.cpu()), model
 
-def variance(Xs, Ys, n_partitions=9, regularizer='models.AECross', alpha=1, lam=1, N_dims=8, validation_split=0.5, estimate_on_val=True, batch_size=512, lr=0.0001, epochs=300, patience=30, quiet=True, device=None):
+def variance(Xs, Ys, n_partitions=9, regularizer='models.AECross', alpha=1, lam=1, N_dims=8, k=3, validation_split=0.5, estimate_on_val=True, batch_size=512, lr=0.0001, epochs=300, patience=30, quiet=True, device=None):
     
     assert len(Xs) == len(Ys), "Xs and Ys must be the same size!"
    
@@ -267,7 +267,7 @@ def variance(Xs, Ys, n_partitions=9, regularizer='models.AECross', alpha=1, lam=
             Xs_sec = np.array(Xs_sec)
             Ys_sec = np.array(Ys_sec)
 
-            pmis_part , _, _ = estimate(Xs_sec, Ys_sec, regularizer='models.AECross', alpha=1, lam=1, N_dims=8, k=3, validation_split=0.5, estimate_on_val=True, batch_size=512, lr=0.0001, epochs=300, patience=30, quiet=True, device=None);
+            pmis_part , _, _ = estimate(Xs_sec, Ys_sec, regularizer=regularizer, alpha=alpha, lam=lam, N_dims=N_dims, k=k, validation_split=validation_split, estimate_on_val=estimate_on_val, batch_size=batch_size, lr=lr, epochs=epochs, patience=patience, quiet=quiet, device=device);
 
             lmi_estimate_part = np.nanmean(pmis_part)
             part_lmi_est.append(lmi_estimate_part)
