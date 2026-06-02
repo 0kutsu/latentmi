@@ -167,7 +167,7 @@ def learn_representation(Xs, Ys, train_indices, test_indices,
 
 def estimate(Xs, Ys, regularizer='models.AECross', 
          alpha=1, lam=1,
-         N_dims=8, validation_split=0.5, estimate_on_val=True,
+         N_dims=8, k=4, validation_split=0.5, estimate_on_val=True,
          batch_size=512, lr=0.0001, epochs=300, patience=30,
          quiet=True, device=None):
     """
@@ -182,6 +182,7 @@ def estimate(Xs, Ys, regularizer='models.AECross',
     :param alpha: self-reconstruction loss weight, defaults to 1
     :param lam: cross-reconstruction regularization weight, defaults to 1
     :param N_dims: dimensions in each latent representation, defaults to 8
+    :param k: k value used in the kNN calculation for KSG estimate
     
     :param batch_size: samples per batch, defaults to 512
     :param lr: learning rate for Adam optimizer, defaults to 1e-4
@@ -241,9 +242,9 @@ def estimate(Xs, Ys, regularizer='models.AECross',
 
         # fill val pMIs
         estimate[indices[N_train:]] = ksg.mi(Zx.cpu()[indices[N_train:]], 
-        Zy.cpu()[indices[N_train:]])
+        Zy.cpu()[indices[N_train:]], k)
     
     else:
-        estimate += ksg.mi(Zx.cpu(), Zy.cpu())
+        estimate += ksg.mi(Zx.cpu(), Zy.cpu(), k)
     
     return estimate, (Zx.cpu(), Zy.cpu()), model
