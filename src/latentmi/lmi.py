@@ -244,8 +244,36 @@ def estimate(Xs, Ys, regularizer='models.AECross',
     
     return estimate, (Zx.cpu(), Zy.cpu()), model
 
-def variance(Xs, Ys, n_partitions=9, regularizer='models.AECross', alpha=1, lam=1, N_dims=8, k=3, validation_split=0.5, estimate_on_val=True, batch_size=512, lr=0.0001, epochs=300, patience=30, quiet=True, device=None):
+def estimate_variance(Xs, Ys, n_partitions=9, regularizer='models.AECross', 
+                      alpha=1, lam=1, N_dims=8, k=3, validation_split=0.5, estimate_on_val=True,
+                      batch_size=512, lr=0.0001, epochs=300, patience=30, quiet=True, device=None):
     
+    """
+    :param Xs: input data, array with shape (N_samples, N_dims). ordering must align with Y.
+    :param Ys: input data, array with shape(N_samples, N_dims). ordering must align with X.
+
+    :param n_partitions: number of different partitions of the data to estimate variance on. defaults to 9.  
+    :param regularizer: type of regularization, defaults to AECross. 
+                        can be changed to \'models.AEMINE\' or 
+                        \'models.AEInfoNCE\' but not recommended.
+    :param alpha: self-reconstruction loss weight, defaults to 1
+    :param lam: cross-reconstruction regularization weight, defaults to 1
+    :param N_dims: dimensions in each latent representation, defaults to 8
+    :param k: k value used in the kNN calculation for KSG estimate
+    
+    :param batch_size: samples per batch, defaults to 512
+    :param lr: learning rate for Adam optimizer, defaults to 1e-4
+    :param epochs: max number of epochs, defaults to 300
+    :param validation_split: fraction train/test split, defaults to 0.5
+    :param patience: epochs without val. loss decline before early stopping, 
+                     defaults to 300
+    :param quiet: suppress training progress display, defaults to True
+    :param device: device for torch to train model, defaults to cuda if available, else cpu.
+
+    :return: the predicted variance of the LMI estimate using subsampling
+    :return: the standard error of the variance estimate
+    """
+
     assert len(Xs) == len(Ys), "Xs and Ys must be the same size!"
    
     XsYs = list(zip(Xs, Ys)) # combine Xs and Ys into a list of tuples for easier shuffling and partitioning
