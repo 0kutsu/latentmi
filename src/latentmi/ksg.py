@@ -189,3 +189,42 @@ def out_of_sample_pmi(obs_x, obs_y, est_x, est_y, k=3, base=2):
     d = digamma(len(obs_x))
     
     return (c+d-a-b) / np.log(base)
+
+def estimate_variance(X, Y, k=3, n_partitions=9, z=None, base=2, alpha=0):
+    assert len(X) == len(Y), "Xs and Ys must be the same size!"
+   
+    XsYs = list(zip(X, Y)) # combine Xs and Ys into a list of tuples for easier shuffling and partitioning
+    # [([x, x, x], [y, y, y]), ([x, x, x], [y, y, y]), ...]
+    data_size = len(XsYs)
+    part_sizes = np.array([i for i in range(2, n_partitions + 2)]) # the number of sections in each partition (the first partition has 2 sections, etc.)
+
+    partitions = [] # contains n_partitions different partitions of n_i sections where i goes from 2 to n_partitions + 1
+    for i in range(0, n_partitions):
+        sec_size = data_size // part_sizes[i] # number of samples in each section
+        np.random.shuffle(XsYs) # shuffle the data before creating the sections
+        partitions.append([XsYs[j*sec_size:(j+1)*sec_size] for j in range(part_sizes[i])])
+
+    ksgs = [] # contains the KSG estimates for each partition
+    for part in partitions:
+        ksg_est = []
+        for sec in part:
+            Xs_sec, Ys_sec = zip(*sec) # unzip the section into Xs and Ys
+            Xs_sec = np.array(Xs_sec)
+            Ys_sec = np.array(Ys_sec)
+
+            ksg = ksg(Xs_sec, Ys_sec, k=k, z=z, base=base, alpha=alpha)
+
+            ksg_est.append(ksg)
+        ksgs.append(ksg_est)
+
+    # calculating the variance of the LMI estiamtes from the subsamples
+    part_variances = np.array([None] * n_partitions) # contains the variance estimates for each partition (the first partition is 0)
+    for i in range(0, n_partitions):
+        part_variances[i] = np.var(ksgs[i], ddof = 1)
+
+    variance_predicted = sum((part_sizes - 1) / part_sizes * part_variances) / sum(part_sizes - 1)
+    sml = variance_predicted * data_size
+    var_s = 2 * sml**2 / sum(part_sizes - 1)
+    stdvar = np.sqrt(var_s / data_size**2)
+    
+    return variance_predicted, stdvar
