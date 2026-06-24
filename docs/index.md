@@ -7,8 +7,8 @@
 
 example.ipynb
 troubleshooting.md
-variance.md
 autoapi/index
+variance.md
 changelog.md
 contributing.md
 conduct.md
