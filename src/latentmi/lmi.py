@@ -199,6 +199,8 @@ def estimate(Xs, Ys, estimate_var=False, regularizer='models.AECross',
     if device == None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+    oXs = Xs
+    oYs = Ys
 
     Xs = torch.from_numpy(np.nan_to_num((Xs - Xs.mean(axis=0)) / Xs.std(axis=0))).float().to(device)
     Ys = torch.from_numpy(np.nan_to_num((Ys - Ys.mean(axis=0)) / Ys.std(axis=0))).float().to(device)
@@ -247,7 +249,7 @@ def estimate(Xs, Ys, estimate_var=False, regularizer='models.AECross',
     if not estimate_var:
         return estimate, (Zx.cpu(), Zy.cpu()), model
     else:
-        var_estimate, se_var_estimate = estimate_variance(Xs, Ys, n_partitions=9, regularizer=regularizer, 
+        var_estimate, se_var_estimate = estimate_variance(oXs, oYs, n_partitions=9, regularizer=regularizer, 
                       alpha=alpha, lam=lam, N_dims=N_dims, k=k, validation_split=validation_split, estimate_on_val=estimate_on_val,
                       batch_size=batch_size, lr=lr, epochs=epochs, patience=patience, quiet=quiet, device=device)
         return estimate, var_estimate, se_var_estimate, (Zx.cpu(), Zy.cpu()), model
