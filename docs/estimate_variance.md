@@ -14,7 +14,7 @@ The procedure is:
 
 1. **Partition the data.** The `N` paired samples are split into `n_partitions` disjoint subsamples of size $N_i = N / n_i$, for a range of partition counts $n_i$ (e.g. 2, 3, 4, …, 9). Because the subsamples are disjoint rather than resampled, no duplicate points are introduced.
 
-2. **Estimate MI in each subsample.** LMI is computed on every partition, giving a spread of estimates for each subsample size. The sample variance across partitions of a given size is
+2. **Estimate MI in each subsample.** The MI for every partition is estimated to give a spread of estimates for each subsample size. The sample variance across partitions of a given size is
 
 $$\sigma^2_{KSG,i} = \frac{1}{n_i - 1} \sum_{j=1}^{n_i} (\hat{I}_j - \bar{I})^2$$
 
