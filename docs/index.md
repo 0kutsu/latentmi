@@ -7,7 +7,7 @@
 
 example.ipynb
 troubleshooting.md
-estimate_variance.md
+variance.md
 autoapi/index
 changelog.md
 contributing.md

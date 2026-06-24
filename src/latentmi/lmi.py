@@ -166,12 +166,12 @@ def estimate(Xs, Ys, estimate_var=False, regularizer='models.AECross',
          batch_size=512, lr=0.0001, epochs=300, patience=30,
          quiet=True, device=None):
     """
-    return pMIs (with NaNs for points not included in KSG estimate), embeddings, trained model
+    return pMIs (with NaNs for points not included in KSG estimate), [variance estimate], [variance estimate error], embeddings, trained model
 
     :param Xs: input data, array with shape (N_samples, N_dims). ordering must align with Y.
     :param Ys: input data, array with shape(N_samples, N_dims). ordering must align with X.
 
-    :param estimate_variance: indicates whether lmi.estimate should return a complementary variance estimate, defaults to False
+    :param estimate_var: indicates whether to return a complementary variance estimate and variance estimate error, defaults to False
 
     :param regularizer: type of regularization, defaults to AECross. 
                         can be changed to \'models.AEMINE\' or 
@@ -179,7 +179,7 @@ def estimate(Xs, Ys, estimate_var=False, regularizer='models.AECross',
     :param alpha: self-reconstruction loss weight, defaults to 1
     :param lam: cross-reconstruction regularization weight, defaults to 1
     :param N_dims: dimensions in each latent representation, defaults to 8
-    :param k: k value used in the kNN calculation for KSG estimate
+    :param k: k value used in the kNN calculation for KSG estimate, defaults to 4
     
     :param batch_size: samples per batch, defaults to 512
     :param lr: learning rate for Adam optimizer, defaults to 1e-4
@@ -192,6 +192,8 @@ def estimate(Xs, Ys, estimate_var=False, regularizer='models.AECross',
 
     :return: array of pointwise mutual information estimates, order aligned with input. NaNs
              values not included in KSG estimate. mean of this array is MI estimate.
+    :return: a single variance estimate for the LMI approximation
+    :return: the standard error of the variance estimate
     :return: tuple of arrays of coordinates of latent embeddings. first index is X embeddings, second index is Y.
     :return: Pytorch object for trained representation learning model
     """

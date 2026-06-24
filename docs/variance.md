@@ -1,4 +1,4 @@
-## Overview
+# Variance Estimate Validation
 
 Mutual information estimators are hard to put error bars on; the naive approach — bootstrap resampling — fails for MI because resampling with replacement creates duplicate points. Duplicates sit at zero distance from one another, which systematically positively biases KSG estimates. `estimate_variance()` therefore uses the **subsampling / partitioning** approach of Holmes & Nemenman (2019) rather than a bootstrap.
 
