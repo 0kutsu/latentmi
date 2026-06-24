@@ -160,7 +160,7 @@ def learn_representation(Xs, Ys, train_indices, test_indices,
 
         return Zx.cpu(), Zy.cpu(), model
 
-def estimate(Xs, Ys, estimate_variance=False, regularizer='models.AECross', 
+def estimate(Xs, Ys, estimate_var=False, regularizer='models.AECross', 
          alpha=1, lam=1,
          N_dims=8, k=4, validation_split=0.5, estimate_on_val=True,
          batch_size=512, lr=0.0001, epochs=300, patience=30,
@@ -244,7 +244,7 @@ def estimate(Xs, Ys, estimate_variance=False, regularizer='models.AECross',
     else:
         estimate += ksg.mi(Zx.cpu(), Zy.cpu(), k)
     
-    if estimate_variance == False:
+    if not estimate_var:
         return estimate, (Zx.cpu(), Zy.cpu()), model
     else:
         var_estimate, se_var_estimate = estimate_variance(Xs, Ys, n_partitions=9, regularizer=regularizer, 
@@ -279,7 +279,7 @@ def estimate_variance(Xs, Ys, n_partitions=9, regularizer='models.AECross',
             Xs_sec = np.array(Xs_sec)
             Ys_sec = np.array(Ys_sec)
 
-            pmis_part , _, _ = estimate(Xs_sec, Ys_sec, estimate_variance=False, regularizer=regularizer, alpha=alpha, lam=lam, N_dims=N_dims, k=k, validation_split=validation_split, estimate_on_val=estimate_on_val, batch_size=batch_size, lr=lr, epochs=epochs, patience=patience, quiet=quiet, device=device);
+            pmis_part , _, _ = estimate(Xs_sec, Ys_sec, estimate_var=False, regularizer=regularizer, alpha=alpha, lam=lam, N_dims=N_dims, k=k, validation_split=validation_split, estimate_on_val=estimate_on_val, batch_size=batch_size, lr=lr, epochs=epochs, patience=patience, quiet=quiet, device=device);
 
             lmi_estimate_part = np.nanmean(pmis_part)
             part_lmi_est.append(lmi_estimate_part)
