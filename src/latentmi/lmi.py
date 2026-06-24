@@ -160,7 +160,7 @@ def learn_representation(Xs, Ys, train_indices, test_indices,
 
         return Zx.cpu(), Zy.cpu(), model
 
-def estimate(Xs, Ys, regularizer='models.AECross', 
+def estimate(Xs, Ys, estimate_variance=False, regularizer='models.AECross', 
          alpha=1, lam=1,
          N_dims=8, k=4, validation_split=0.5, estimate_on_val=True,
          batch_size=512, lr=0.0001, epochs=300, patience=30,
@@ -170,6 +170,8 @@ def estimate(Xs, Ys, regularizer='models.AECross',
 
     :param Xs: input data, array with shape (N_samples, N_dims). ordering must align with Y.
     :param Ys: input data, array with shape(N_samples, N_dims). ordering must align with X.
+
+    :param estimate_variance: indicates whether lmi.estimate should return a complementary variance estimate, defaults to False
 
     :param regularizer: type of regularization, defaults to AECross. 
                         can be changed to \'models.AEMINE\' or 
@@ -242,37 +244,19 @@ def estimate(Xs, Ys, regularizer='models.AECross',
     else:
         estimate += ksg.mi(Zx.cpu(), Zy.cpu(), k)
     
-    return estimate, (Zx.cpu(), Zy.cpu()), model
+    if estimate_variance == False:
+        return estimate, (Zx.cpu(), Zy.cpu()), model
+    else:
+        var_estimate, se_var_estimate = estimate_variance(Xs, Ys, n_partitions=9, regularizer=regularizer, 
+                      alpha=alpha, lam=lam, N_dims=N_dims, k=k, validation_split=validation_split, estimate_on_val=estimate_on_val,
+                      batch_size=batch_size, lr=lr, epochs=epochs, patience=patience, quiet=quiet, device=device)
+        return estimate, var_estimate, se_var_estimate, (Zx.cpu(), Zy.cpu()), model
 
 def estimate_variance(Xs, Ys, n_partitions=9, regularizer='models.AECross', 
                       alpha=1, lam=1, N_dims=8, k=3, validation_split=0.5, estimate_on_val=True,
                       batch_size=512, lr=0.0001, epochs=300, patience=30, quiet=True, device=None):
-    
-    """
-    :param Xs: input data, array with shape (N_samples, N_dims). ordering must align with Y.
-    :param Ys: input data, array with shape(N_samples, N_dims). ordering must align with X.
 
-    :param n_partitions: number of different partitions of the data to estimate variance on. defaults to 9.  
-    :param regularizer: type of regularization, defaults to AECross. 
-                        can be changed to \'models.AEMINE\' or 
-                        \'models.AEInfoNCE\' but not recommended.
-    :param alpha: self-reconstruction loss weight, defaults to 1
-    :param lam: cross-reconstruction regularization weight, defaults to 1
-    :param N_dims: dimensions in each latent representation, defaults to 8
-    :param k: k value used in the kNN calculation for KSG estimate
-    
-    :param batch_size: samples per batch, defaults to 512
-    :param lr: learning rate for Adam optimizer, defaults to 1e-4
-    :param epochs: max number of epochs, defaults to 300
-    :param validation_split: fraction train/test split, defaults to 0.5
-    :param patience: epochs without val. loss decline before early stopping, 
-                     defaults to 300
-    :param quiet: suppress training progress display, defaults to True
-    :param device: device for torch to train model, defaults to cuda if available, else cpu.
-
-    :return: the predicted variance of the LMI estimate using subsampling
-    :return: the standard error of the variance estimate
-    """
+    # :param n_partitions: number of different partitions of the data to estimate variance on. defaults to 9.  
 
     assert len(Xs) == len(Ys), "Xs and Ys must be the same size!"
    
@@ -295,7 +279,7 @@ def estimate_variance(Xs, Ys, n_partitions=9, regularizer='models.AECross',
             Xs_sec = np.array(Xs_sec)
             Ys_sec = np.array(Ys_sec)
 
-            pmis_part , _, _ = estimate(Xs_sec, Ys_sec, regularizer=regularizer, alpha=alpha, lam=lam, N_dims=N_dims, k=k, validation_split=validation_split, estimate_on_val=estimate_on_val, batch_size=batch_size, lr=lr, epochs=epochs, patience=patience, quiet=quiet, device=device);
+            pmis_part , _, _ = estimate(Xs_sec, Ys_sec, estimate_variance=False, regularizer=regularizer, alpha=alpha, lam=lam, N_dims=N_dims, k=k, validation_split=validation_split, estimate_on_val=estimate_on_val, batch_size=batch_size, lr=lr, epochs=epochs, patience=patience, quiet=quiet, device=device);
 
             lmi_estimate_part = np.nanmean(pmis_part)
             part_lmi_est.append(lmi_estimate_part)
@@ -306,9 +290,9 @@ def estimate_variance(Xs, Ys, n_partitions=9, regularizer='models.AECross',
     for i in range(0, n_partitions):
         part_variances[i] = np.var(lmis[i], ddof = 1)
 
-    variance_predicted = sum((part_sizes - 1) / part_sizes * part_variances) / sum(part_sizes - 1)
-    sml = variance_predicted * data_size
+    var_estimate = sum((part_sizes - 1) / part_sizes * part_variances) / sum(part_sizes - 1)
+    sml = var_estimate * data_size
     var_s = 2 * sml**2 / sum(part_sizes - 1)
-    stdvar = np.sqrt(var_s / data_size**2)
+    se_var_estimate = np.sqrt(var_s / data_size**2)
     
-    return variance_predicted, stdvar
+    return var_estimate, se_var_estimate
