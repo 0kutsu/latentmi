@@ -1,6 +1,6 @@
 # Variance Estimate Validation
 
-Mutual information estimators are hard to put error bars on; the naive approach — bootstrap resampling — fails for MI because resampling with replacement creates duplicate points. Duplicates sit at zero distance from one another, which systematically positively biases KSG estimates. `estimate_variance()` therefore uses the **subsampling / partitioning** approach of Holmes & Nemenman (2019) rather than a bootstrap.
+Mutual information estimators are hard to put error bars on; the naive approach — bootstrap resampling — fails for MI because resampling with replacement creates duplicate points (Holmes & Nemenman 2019). Duplicates sit at zero distance from one another, which systematically positively biases KSG estimates. `estimate_variance()` therefore uses the **subsampling / partitioning** approach of Holmes & Nemenman (2019) rather than a bootstrap.
 
 ## How it works
 
@@ -10,7 +10,7 @@ $$\sigma^2_{KSG}(N) = \frac{B}{N}$$
 
 The goal is to recover the coefficient $B$. Once $B$ is known, the variance at the full sample size $N$ follows directly.
 
-The procedure is:
+The procedure, re-implementing Holmes & Nemenman (2019), is:
 
 1. **Partition the data.** The `N` paired samples are split into `n_partitions` disjoint subsamples of size $N_i = N / n_i$, for a range of partition counts $n_i$ (e.g. 2, 3, 4, …, 9). Because the subsamples are disjoint rather than resampled, no duplicate points are introduced.
 
@@ -24,12 +24,17 @@ $$\sigma^2_{KSG,i} = \frac{1}{n_i - 1} \sum_{j=1}^{n_i} (\hat{I}_j - \bar{I})^2$
 
 ## Benchmarking
 
-The estimator was validated on synthetic data where the ground-truth mutual information is known, so that both the LMI estimate and its error bar could be checked directly.
+The estimator was validated on synthetic data where the ground-truth mutual information is known, so that both the LMI estimate and its error bar could be checked directly. We have so far evaluated one distribution. The results support the following observations so far:
+* The predicted variance $\sigma^2_{LMI}$ is unbiased (bias <5%).
+* The LMI estimate shows a small bias that is well within the noise of the estimator (bias of +0.1 to +0.3 standard errors).
+* LMI bias does not show a systematic change with the KSG neighborhood parameter $k$.
+* LMI variance scale as ~1/(sample size) as expected from central limit.
 
 **Test setup.** A correlated 1-D pair $(x, y)$ was drawn from a bivariate Gaussian (covariance `[[6, 4], [4, 3.5]]`, $\rho = 0.87$) with a known true MI of **1.035 bits**, then embedded into 100 dimensions each by multiplying against high-dimensional Gaussian noise. This produces a high-dimensional dataset with a known low-dimensional information content. The experiment drew **100 independent trials of 2,000 samples** each and compared:
 
 1. the *observed* sample variance of the LMI estimates across trials against the *predicted* $\sigma^2_{LMI}$, and
 2. the LMI estimates themselves against the known true MI.
+
 
 ### Results
 
@@ -76,7 +81,6 @@ In short: LMI estimates are fairly unbiased, and the Holmes-style variance estim
 
 The same machinery was used to put error bars on a real high-dimensional estimate — the mutual information between ProtTrans (1024-D) embeddings of known ligand–receptor pairs (~4,400 samples), yielding an LMI estimate of **2.749 ± 0.056 bits**.
 
-A caveat worth keeping in mind: LMI behaves like a metal detector. It tells you *how strong* a relationship is between high-dimensional variables and where to look, but not *what* that relationship is — it does not reveal the nature of the dependence.
 
 ## References
 
